@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Matrice 4T Pro">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.json">
+<title>DJI Matrice 4T Pro</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+main{max-width:600px;margin:auto;padding:18px 16px 34px}h1{font-size:27px;margin:0}.sub{color:#6b7280;font-size:14px;margin-top:3px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.time{font-size:14px;color:#6b7280}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:16px;margin:10px 0}.row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+button{width:100%;border:0;border-radius:15px;padding:14px;font-size:16px;font-weight:700;margin:6px 0;min-height:50px}.primary{background:#111827;color:white}.secondary{background:white;color:#111827;border:1px solid #d1d5db}.danger{background:white;color:#b91c1c;border:1px solid #fecaca}
+.hidden{display:none!important}.muted{color:#6b7280}.small{font-size:13px}.progress{height:9px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-top:9px}.bar{height:100%;width:0;background:#16a34a;transition:.2s}
+.item{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px;margin:7px 0;min-height:52px}.item input{width:24px;height:24px;accent-color:#16a34a;flex:none}.item span{font-size:15px;line-height:1.3}
+.field{display:block;font-size:14px;font-weight:650;margin:12px 0 5px}.field input,.field select,.field textarea{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;font:inherit;background:#fff}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700;font-size:13px}
+.big{font-size:46px;font-weight:800;text-align:center;margin:18px 0 5px}.center{text-align:center}.log{padding:12px 0;border-bottom:1px solid #e5e7eb}.log:last-child{border-bottom:0}.ok{color:#166534}.warn{color:#b45309}.bad{color:#b91c1c}
+@media print{body{background:white}main{max-width:none}.no-print{display:none!important}.card{break-inside:avoid}button{display:none!important}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div><h1>DJI Matrice 4T</h1><div class="sub">Flight Check • Pro</div></div><div id="clock" class="time"></div></div>
+
+<section id="home">
+<div class="card">
+<button id="newQuick" class="primary">⚡ Snelle check</button>
+<button id="newExtended" class="secondary">🔎 Uitgebreide check</button>
+<button id="daily" class="secondary">✓ Dagelijkse controle</button>
+</div>
+<div class="card">
+<div class="row"><strong>Vluchtlogboek</strong><button id="logs" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Open</button></div>
+<div id="last" class="muted small" style="margin-top:8px">Nog geen vlucht opgeslagen.</div>
+</div>
+<div class="card">
+<div class="row"><strong>Accubeheer</strong><button id="batteries" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Beheer</button></div>
+<div id="batterySummary" class="muted small" style="margin-top:8px">Nog geen accu's geregistreerd.</div>
+</div>
+</section>
+
+<section id="flightInfo" class="hidden">
+<h2>Nieuwe vlucht</h2>
+<div class="card">
+<label class="field">Project / locatie<input id="project" placeholder="Bijv. Westerhever"></label>
+<label class="field">Piloot<input id="pilot" placeholder="Naam"></label>
+<label class="field">Accu<select id="battery"><option value="">Geen accu geselecteerd</option></select></label>
+<label class="field">Doel van de vlucht<input id="purpose" placeholder="Bijv. inspectie / fotografie"></label>
+<button id="continueInfo" class="primary">Doorgaan naar controle</button>
+<button id="cancelInfo" class="secondary">Annuleren</button>
+</div>
+</section>
+
+<section id="quick" class="hidden">
+<div class="row"><h2>⚡ Snelle check</h2><button id="backQuick" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<div id="quickList"></div><div class="card"><div class="row"><span>Voortgang</span><strong id="quickPct">0%</strong></div><div class="progress"><div id="quickBar" class="bar"></div></div></div>
+<button id="startQuick" class="primary" disabled style="opacity:.45">🔒 Vlucht vrijgeven</button>
+</section>
+
+<section id="extended" class="hidden">
+<div class="row"><h2>🔎 Uitgebreide check</h2><button id="backExt" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<div id="extendedList"></div><div class="card"><div class="row"><span>Voortgang</span><strong id="extPct">0%</strong></div><div class="progress"><div id="extBar" class="bar"></div></div></div>
+<button id="startExt" class="primary" disabled style="opacity:.45">🔒 Vlucht vrijgeven</button>
+</section>
+
+<section id="flying" class="hidden">
+<div class="card center"><span class="badge">● VLUCHT ACTIEF</span><div id="timer" class="big">00:00:00</div><div id="flightMeta" class="muted small"></div></div>
+<div class="card">
+<label class="field">Opmerking<textarea id="note" rows="3" placeholder="Optioneel"></textarea></label>
+</div>
+<button id="incident" class="secondary">⚠️ Incident / bijzonderheid</button>
+<button id="abort" class="danger">🛑 Vlucht afbreken</button>
+<button id="end" class="primary">🛬 Vlucht beëindigen</button>
+</section>
+
+<section id="post" class="hidden">
+<h2>🛬 Vlucht afronden</h2><div id="postList"></div>
+<button id="save" class="primary">✓ Vlucht opslaan</button>
+</section>
+
+<section id="incidentPanel" class="hidden">
+<h2>⚠️ Incident / bijzonderheid</h2><textarea id="incidentText" rows="7" placeholder="Beschrijf wat er is gebeurd..."></textarea>
+<button id="saveIncident" class="primary">Opslaan</button><button id="cancelIncident" class="secondary">Annuleren</button>
+</section>
+
+<section id="dailyPanel" class="hidden">
+<div class="row"><h2>Dagelijkse controle</h2><button id="backDaily" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<div id="dailyList"></div><button id="saveDaily" class="primary">✓ Controle afgerond</button>
+</section>
+
+<section id="logPanel" class="hidden">
+<div class="row"><h2>Vluchtlogboek</h2><button id="backLogs" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<div id="logList" class="card"></div>
+<button id="clearLogs" class="danger no-print">Logboek wissen</button>
+</section>
+
+<section id="batteryPanel" class="hidden">
+<div class="row"><h2>Accubeheer</h2><button id="backBat" class="secondary" style="width:auto;padding:9px 13px;font-size:14px">Terug</button></div>
+<div class="card">
+<label class="field">Accunummer<input id="batName" placeholder="TB65-01"></label>
+<label class="field">Cycli<input id="batCycles" type="number" min="0" step="1" placeholder="0"></label>
+<button id="addBat" class="primary">Accu toevoegen / bijwerken</button>
+</div>
+<div id="batList"></div>
+</section>
+
+<section id="report" class="hidden">
+<h2>Vluchtregistratie</h2><div id="reportBody"></div>
+<button id="print" class="primary no-print">🖨️ Rapport afdrukken / PDF</button>
+<button id="reportBack" class="secondary no-print">Terug</button>
+</section>
+</main>
+
+<script>
+const QUICK=["Luchtruim en geldende beperkingen gecontroleerd","Weer, wind en zicht gecontroleerd","Drone en propellers visueel OK","Accu voldoende geladen en onbeschadigd","GNSS/positionering OK","Home Point correct geregistreerd","RTH-hoogte en RTH-instelling gecontroleerd","Start- en landingsgebied veilig"];
+const EXT=["Opdracht en doel duidelijk","Vluchtgebied en start-/landingsplaats bepaald","UAS-zones en lokale beperkingen gecontroleerd","NOTAM's en tijdelijke beperkingen gecontroleerd","Benodigde toestemming/voorwaarden gecontroleerd","Weer, wind, windstoten en zicht gecontroleerd","Verwachte weersontwikkeling beoordeeld","Romp, armen en bevestigingen gecontroleerd","Motoren vrij van vuil en zonder abnormale speling","Alle propellers onbeschadigd en correct gemonteerd","Landingsgestel gecontroleerd","Camera's, sensoren en lenzen schoon en onbeschadigd","Gimbal vrij en functioneert normaal","TB65-accu voldoende geladen en onbeschadigd","RC Plus 2 voldoende geladen en functioneert normaal","SD-kaart herkend en voldoende vrije opslag","Foto/video-instellingen gecontroleerd","GNSS/positionering beschikbaar","Kompas- en IMU-status normaal","Home Point correct geregistreerd","RTH-hoogte en RTH-instellingen gecontroleerd","Maximale vlieghoogte gecontroleerd","Obstacle Avoidance/sensorinstellingen gecontroleerd","Geen kritieke waarschuwingen","Startplaats stabiel en vrij","Landingsgebied vrij","Omgeving en luchtruim direct vóór opstijgen gecontroleerd","Vlucht kan veilig worden uitgevoerd"];
+const DAILY=["Romp en armen gecontroleerd","Motoren en propellers gecontroleerd","Camera's en lenzen schoon","Gimbal vrij en correct functionerend","Obstacle-sensing/sensoren gecontroleerd","TB65-accu gecontroleerd","RC Plus 2 gecontroleerd","SD-kaart en opslag gecontroleerd","Firmware/app gecontroleerd","Geen kritieke waarschuwingen aanwezig","Drone en controller fysiek onbeschadigd","Reserveaccu's en noodzakelijke accessoires aanwezig"];
+const POST=["Drone visueel gecontroleerd na landing","Propellers en motoren gecontroleerd","Camera/gimbal gecontroleerd","Accu verwijderd en status gecontroleerd","Beeldmateriaal gecontroleerd"];
+const $=id=>document.getElementById(id); const screens=["home","flightInfo","quick","extended","flying","post","incidentPanel","dailyPanel","logPanel","batteryPanel","report"];
+let timer=null,start=0,mode="",incident="",current={};
+
+function show(id){screens.forEach(s=>$(s).classList.toggle("hidden",s!==id));scrollTo(0,0)}
+function getData(){return JSON.parse(localStorage.getItem("m4t_pro")||'{"logs":[],"batteries":{}}')}
+function setData(d){localStorage.setItem("m4t_pro",JSON.stringify(d))}
+function renderChecks(items,id,group){$(id).innerHTML=items.map((x,i)=>`<label class="item"><input type="checkbox" data-group="${group}" data-i="${i}"><span>${x}</span></label>`).join("");$(id).onchange=()=>update(group)}
+function update(group){let b=[...document.querySelectorAll(`input[data-group="${group}"]`)],p=Math.round(b.filter(x=>x.checked).length/b.length*100);if(group==="quick"){ $("quickPct").textContent=p+"%";$("quickBar").style.width=p+"%";$("startQuick").disabled=p<100;$("startQuick").style.opacity=p<100?".45":"1"}if(group==="ext"){ $("extPct").textContent=p+"%";$("extBar").style.width=p+"%";$("startExt").disabled=p<100;$("startExt").style.opacity=p<100?".45":"1"}}
+function fmt(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),z=s%60;return[h,m,z].map(n=>String(n).padStart(2,"0")).join(":")}
+function batteries(){let d=getData(),a=Object.entries(d.batteries);$("battery").innerHTML='<option value="">Geen accu geselecteerd</option>'+a.map(([n,v])=>`<option value="${n}">${n} • ${v.cycles} cycli</option>`).join("");$("batterySummary").textContent=a.length?a.map(([n,v])=>`${n}: ${v.cycles} cycli`).join(" • "):"Nog geen accu's geregistreerd.";$("batList").innerHTML=a.length?a.map(([n,v])=>`<div class="card"><div class="row"><strong>${n}</strong><span>${v.cycles} cycli</span></div></div>`).join(""):"<div class='card muted'>Nog geen accu's.</div>"}
+function last(){let d=getData(),x=d.logs[0];$("last").textContent=x?`${x.date} • ${x.project||"Geen locatie"} • ${x.duration} • ${x.status}`:"Nog geen vlucht opgeslagen."}
+function clock(){$("clock").textContent=new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})}setInterval(clock,1000);clock();batteries();last();
+
+$("newQuick").onclick=()=>{mode="quick";show("flightInfo")};$("newExtended").onclick=()=>{mode="extended";show("flightInfo")};
+$("continueInfo").onclick=()=>{current={project:$("project").value.trim()||"Onbekend",pilot:$("pilot").value.trim()||"Onbekend",battery:$("battery").value,purpose:$("purpose").value.trim()||"Onbekend",mode,date:new Date().toISOString()};if(mode==="quick"){renderChecks(QUICK,"quickList","quick");show("quick")}else{renderChecks(EXT,"extendedList","ext");show("extended")}};
+$("cancelInfo").onclick=()=>show("home");$("backQuick").onclick=()=>show("flightInfo");$("backExt").onclick=()=>show("flightInfo");
+function begin(){start=Date.now();current.started=new Date(start).toISOString();$("flightMeta").textContent=`${current.project} • ${current.purpose} • ${current.mode==="quick"?"Snelle":"Uitgebreide"} check`;$("timer").textContent="00:00:00";timer=setInterval(()=>$("timer").textContent=fmt(Date.now()-start),500);show("flying")}
+$("startQuick").onclick=begin;$("startExt").onclick=begin;
+$("incident").onclick=()=>show("incidentPanel");$("cancelIncident").onclick=()=>show("flying");$("saveIncident").onclick=()=>{let t=$("incidentText").value.trim();if(!t){alert("Vul een beschrijving in.");return}incident+=(incident?"\n":"")+new Date().toLocaleTimeString("nl-NL")+" — "+t;$("incidentText").value="";show("flying")};
+$("abort").onclick=()=>{if(confirm("Vlucht afbreken en registreren?"))finish("Afgebroken")};$("end").onclick=()=>{renderChecks(POST,"postList","post");show("post")};
+function finish(status){clearInterval(timer);let end=Date.now();current.end=new Date(end).toISOString();current.duration=fmt(end-start);current.status=status;current.note=$("note").value.trim();current.incident=incident;let d=getData();d.logs.unshift({...current,date:new Date(start).toLocaleDateString("nl-NL")});d.logs=d.logs.slice(0,100);setData(d);$("note").value="";incident="";renderReport({...current,date:new Date(start).toLocaleDateString("nl-NL")});show("report");last()}
+$("save").onclick=()=>{let b=[...document.querySelectorAll('input[data-group="post"]')];if(b.some(x=>!x.checked)){alert("Rond eerst alle post-flight controles af.");return}finish("Voltooid")};
+$("daily").onclick=()=>{renderChecks(DAILY,"dailyList","daily");show("dailyPanel")};$("backDaily").onclick=()=>show("home");$("saveDaily").onclick=()=>{let b=[...document.querySelectorAll('input[data-group="daily"]')];if(b.some(x=>!x.checked)){alert("Niet alle dagelijkse controles zijn afgerond.");return}let d=getData();d.daily=new Date().toLocaleString("nl-NL");setData(d);show("home")};
+$("logs").onclick=()=>{let d=getData();$("logList").innerHTML=d.logs.length?d.logs.map((x,i)=>`<div class="log"><strong>Vlucht ${d.logs.length-i}</strong><br>${x.date} • ${xproject=x.project} • ${x.duration}<br><span class="${x.status==="Voltooid"?"ok":"warn"}">${x.status}</span> • ${x.mode==="quick"?"Snelle":"Uitgebreide"} check${x.incident?" • ⚠️ bijzonderheid":""}</div>`).join(""):"<div class='muted'>Geen vluchten.</div>";show("logPanel")};
+$("backLogs").onclick=()=>show("home");$("clearLogs").onclick=()=>{if(confirm("Alle vluchtregistraties wissen?")){let d=getData();d.logs=[];setData(d);$("logs").click()}};
+$("batteries").onclick=()=>{batteries();show("batteryPanel")};$("backBat").onclick=()=>show("home");$("addBat").onclick=()=>{let n=$("batName").value.trim(),c=parseInt($("batCycles").value,10);if(!n||!Number.isFinite(c)||c<0){alert("Vul een geldig accunummer en aantal cycli in.");return}let d=getData();d.batteries[n]={cycles:c};setData(d);$("batName").value="";$("batCycles").value="";batteries()};
+function renderReport(x){$("reportBody").innerHTML=`<div class="card"><strong>Datum</strong><div>${x.date}</div><br><strong>Project / locatie</strong><div>${x.project}</div><br><strong>Piloot</strong><div>${x.pilot}</div><br><strong>Doel</strong><div>${x.purpose}</div><br><strong>Controle</strong><div>${x.mode==="quick"?"Snelle check":"Uitgebreide check"}</div><br><strong>Accu</strong><div>${x.battery||"Niet geselecteerd"}</div><br><strong>Start</strong><div>${new Date(x.started).toLocaleTimeString("nl-NL")}</div><strong>Einde</strong><div>${new Date(x.end).toLocaleTimeString("nl-NL")}</div><br><strong>Duur</strong><div>${x.duration}</div><br><strong>Status</strong><div>${x.status}</div>${x.note?`<br><strong>Opmerking</strong><div>${x.note}</div>`:""}${x.incident?`<br><strong>Bijzonderheid</strong><div>${x.incident.replaceAll("\n","<br>")}</div>`:""}</div>`}
+$("print").onclick=()=>print();$("reportBack").onclick=()=>show("home");
+</script>
+</body></html>
