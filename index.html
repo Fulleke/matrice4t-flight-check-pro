@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Matrice 4T Pro">
 <meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
-<title>DJI Matrice 4T Pro</title>
+<title>DJI Matrice 4T Pro v2</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
 main{max-width:600px;margin:auto;padding:18px 16px 34px}h1{font-size:27px;margin:0}.sub{color:#6b7280;font-size:14px;margin-top:3px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.time{font-size:14px;color:#6b7280}
@@ -23,7 +23,7 @@ button{width:100%;border:0;border-radius:15px;padding:14px;font-size:16px;font-w
 </head>
 <body>
 <main>
-<div class="top"><div><h1>DJI Matrice 4T</h1><div class="sub">Flight Check • Pro</div></div><div id="clock" class="time"></div></div>
+<div class="top"><div><h1>DJI Matrice 4T</h1><div class="sub">Flight Check • Pro v2</div></div><div id="clock" class="time"></div></div>
 
 <section id="home">
 <div class="card">
@@ -48,6 +48,14 @@ button{width:100%;border:0;border-radius:15px;padding:14px;font-size:16px;font-w
 <label class="field">Piloot<input id="pilot" placeholder="Naam"></label>
 <label class="field">Accu<select id="battery"><option value="">Geen accu geselecteerd</option></select></label>
 <label class="field">Doel van de vlucht<input id="purpose" placeholder="Bijv. inspectie / fotografie"></label>
+<details style="margin:12px 0"><summary style="font-weight:700;cursor:pointer">Extra gegevens voor online registratie (optioneel)</summary>
+<label class="field">Uniek toestelnummer/serienummer<input id="serial" placeholder="Serienummer of toestelnummer"></label>
+<label class="field">Categorie/subcategorie<input id="category" value="Open A1/A3"></label>
+<label class="field">Type training/oefening<input id="trainingType" placeholder="Bijv. vluchtbewegingen M4T & warmtzoekfunctie"></label>
+<label class="field">Uitgevoerde oefeningen<textarea id="exercises" rows="2" placeholder="Welke oefeningen zijn uitgevoerd?"></textarea></label>
+<label class="field">Instructeur/begeleider<input id="instructor" placeholder="Naam of Nee"></label>
+<label class="field">Resultaat<input id="result" placeholder="Bijv. Uitstekend, alles werkend"></label>
+</details>
 <button id="continueInfo" class="primary">Doorgaan naar controle</button>
 <button id="cancelInfo" class="secondary">Annuleren</button>
 </div>
@@ -108,6 +116,8 @@ button{width:100%;border:0;border-radius:15px;padding:14px;font-size:16px;font-w
 
 <section id="report" class="hidden">
 <h2>Vluchtregistratie</h2><div id="reportBody"></div>
+<button id="copyRegistration" class="secondary no-print">📋 Kopieer online registratie</button>
+<button id="excelRegistration" class="secondary no-print">📊 Exporteer naar Excel</button>
 <button id="print" class="primary no-print">🖨️ Rapport afdrukken / PDF</button>
 <button id="reportBack" class="secondary no-print">Terug</button>
 </section>
@@ -127,12 +137,19 @@ function setData(d){localStorage.setItem("m4t_pro",JSON.stringify(d))}
 function renderChecks(items,id,group){$(id).innerHTML=items.map((x,i)=>`<label class="item"><input type="checkbox" data-group="${group}" data-i="${i}"><span>${x}</span></label>`).join("");$(id).onchange=()=>update(group)}
 function update(group){let b=[...document.querySelectorAll(`input[data-group="${group}"]`)],p=Math.round(b.filter(x=>x.checked).length/b.length*100);if(group==="quick"){ $("quickPct").textContent=p+"%";$("quickBar").style.width=p+"%";$("startQuick").disabled=p<100;$("startQuick").style.opacity=p<100?".45":"1"}if(group==="ext"){ $("extPct").textContent=p+"%";$("extBar").style.width=p+"%";$("startExt").disabled=p<100;$("startExt").style.opacity=p<100?".45":"1"}}
 function fmt(ms){let s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),z=s%60;return[h,m,z].map(n=>String(n).padStart(2,"0")).join(":")}
+const REGISTRATION_LABELS=["Datum","Trainingslocatie","Naam piloot","Drone/type","Uniek toestelnummer/serienummer","Categorie/subcategorie","Type training/oefening","Start- en eindtijd training","Werkelijke vliegtijd","Uitgevoerde oefeningen","Instructeur/begeleider","Resultaat","Bijzonderheden, storing of incident"];
+let lastReportData=null;
+function registrationRows(f){const started=f.started?new Date(f.started):null;const ended=f.end?new Date(f.end):null;const dateValue=started&&!isNaN(started)?started.toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long",year:"numeric"}):(f.date||"");const timeRange=started&&!isNaN(started)?started.toLocaleTimeString("nl-NL")+" - "+(ended&&!isNaN(ended)?ended.toLocaleTimeString("nl-NL"):""):"";const rawDuration=f.duration||"";const durationParts=String(rawDuration).split(":");const displayDuration=durationParts.length===3&&durationParts[0]==="00"?durationParts.slice(1).join(":"):rawDuration;return [[REGISTRATION_LABELS[0],dateValue],[REGISTRATION_LABELS[1],f.project||""],[REGISTRATION_LABELS[2],f.pilot||""],[REGISTRATION_LABELS[3],f.droneType||"DJI Matrice 4T"],[REGISTRATION_LABELS[4],f.serial||""],[REGISTRATION_LABELS[5],f.category||"Open A1/A3"],[REGISTRATION_LABELS[6],f.trainingType||f.purpose||""],[REGISTRATION_LABELS[7],timeRange],[REGISTRATION_LABELS[8],displayDuration],[REGISTRATION_LABELS[9],f.exercises||f.purpose||""],[REGISTRATION_LABELS[10],f.instructor||""],[REGISTRATION_LABELS[11],f.result||f.status||""],[REGISTRATION_LABELS[12],[f.incident||"",f.note||""].filter(Boolean).join("\n")]];}
+function registrationTSV(f){return registrationRows(f).map(r=>r.map(v=>String(v??"").replace(/[\t\r\n]+/g," ")).join("\t")).join("\n");}
+function fallbackCopy(text){const area=document.createElement("textarea");area.value=text;area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);area.select();try{document.execCommand("copy");alert("Registratiegegevens gekopieerd. Plak ze in het online formulier of Excel.")}catch(e){alert("Kopiëren lukte niet. Gebruik de Excel-export.")}area.remove();}
+function copyRegistration(f){const text=registrationTSV(f);if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>alert("Registratiegegevens gekopieerd. Plak ze in het online formulier of Excel.")).catch(()=>fallbackCopy(text));}else fallbackCopy(text);}
+function downloadRegistration(f){const rows=registrationRows(f);const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;");const html='<html><head><meta charset="utf-8"></head><body><table border="1"><tr><th style="background:#000;color:#fff">Gegevens</th><th style="background:#000;color:#fff">Registreren</th></tr>'+rows.map(r=>'<tr>'+r.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</table></body></html>';const blob=new Blob(['\ufeff',html],{type:'application/vnd.ms-excel;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Vluchtregistratie_'+String(f.project||'Matrice4T').replace(/[^a-z0-9_-]+/gi,'_')+'.xls';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function batteries(){let d=getData(),a=Object.entries(d.batteries);$("battery").innerHTML='<option value="">Geen accu geselecteerd</option>'+a.map(([n,v])=>`<option value="${n}">${n} • ${v.cycles} cycli</option>`).join("");$("batterySummary").textContent=a.length?a.map(([n,v])=>`${n}: ${v.cycles} cycli`).join(" • "):"Nog geen accu's geregistreerd.";$("batList").innerHTML=a.length?a.map(([n,v])=>`<div class="card"><div class="row"><strong>${n}</strong><span>${v.cycles} cycli</span></div></div>`).join(""):"<div class='card muted'>Nog geen accu's.</div>"}
 function last(){let d=getData(),x=d.logs[0];$("last").textContent=x?`${x.date} • ${x.project||"Geen locatie"} • ${x.duration} • ${x.status}`:"Nog geen vlucht opgeslagen."}
 function clock(){$("clock").textContent=new Date().toLocaleTimeString("nl-NL",{hour:"2-digit",minute:"2-digit"})}setInterval(clock,1000);clock();batteries();last();
 
 $("newQuick").onclick=()=>{mode="quick";show("flightInfo")};$("newExtended").onclick=()=>{mode="extended";show("flightInfo")};
-$("continueInfo").onclick=()=>{current={project:$("project").value.trim()||"Onbekend",pilot:$("pilot").value.trim()||"Onbekend",battery:$("battery").value,purpose:$("purpose").value.trim()||"Onbekend",mode,date:new Date().toISOString()};if(mode==="quick"){renderChecks(QUICK,"quickList","quick");show("quick")}else{renderChecks(EXT,"extendedList","ext");show("extended")}};
+$("continueInfo").onclick=()=>{current={project:$("project").value.trim()||"Onbekend",pilot:$("pilot").value.trim()||"Onbekend",battery:$("battery").value,purpose:$("purpose").value.trim()||"Onbekend",serial:$("serial").value.trim(),category:$("category").value.trim()||"Open A1/A3",trainingType:$("trainingType").value.trim(),exercises:$("exercises").value.trim(),instructor:$("instructor").value.trim(),result:$("result").value.trim(),droneType:"DJI Matrice 4T",mode,date:new Date().toISOString()};if(mode==="quick"){renderChecks(QUICK,"quickList","quick");show("quick")}else{renderChecks(EXT,"extendedList","ext");show("extended")}};
 $("cancelInfo").onclick=()=>show("home");$("backQuick").onclick=()=>show("flightInfo");$("backExt").onclick=()=>show("flightInfo");
 function begin(){start=Date.now();current.started=new Date(start).toISOString();$("flightMeta").textContent=`${current.project} • ${current.purpose} • ${current.mode==="quick"?"Snelle":"Uitgebreide"} check`;$("timer").textContent="00:00:00";timer=setInterval(()=>$("timer").textContent=fmt(Date.now()-start),500);show("flying")}
 $("startQuick").onclick=begin;$("startExt").onclick=begin;
@@ -141,10 +158,11 @@ $("abort").onclick=()=>{if(confirm("Vlucht afbreken en registreren?"))finish("Af
 function finish(status){clearInterval(timer);let end=Date.now();current.end=new Date(end).toISOString();current.duration=fmt(end-start);current.status=status;current.note=$("note").value.trim();current.incident=incident;let d=getData();d.logs.unshift({...current,date:new Date(start).toLocaleDateString("nl-NL")});d.logs=d.logs.slice(0,100);setData(d);$("note").value="";incident="";renderReport({...current,date:new Date(start).toLocaleDateString("nl-NL")});show("report");last()}
 $("save").onclick=()=>{let b=[...document.querySelectorAll('input[data-group="post"]')];if(b.some(x=>!x.checked)){alert("Rond eerst alle post-flight controles af.");return}finish("Voltooid")};
 $("daily").onclick=()=>{renderChecks(DAILY,"dailyList","daily");show("dailyPanel")};$("backDaily").onclick=()=>show("home");$("saveDaily").onclick=()=>{let b=[...document.querySelectorAll('input[data-group="daily"]')];if(b.some(x=>!x.checked)){alert("Niet alle dagelijkse controles zijn afgerond.");return}let d=getData();d.daily=new Date().toLocaleString("nl-NL");setData(d);show("home")};
-$("logs").onclick=()=>{let d=getData();$("logList").innerHTML=d.logs.length?d.logs.map((x,i)=>`<div class="log"><strong>Vlucht ${d.logs.length-i}</strong><br>${x.date} • ${xproject=x.project} • ${x.duration}<br><span class="${x.status==="Voltooid"?"ok":"warn"}">${x.status}</span> • ${x.mode==="quick"?"Snelle":"Uitgebreide"} check${x.incident?" • ⚠️ bijzonderheid":""}</div>`).join(""):"<div class='muted'>Geen vluchten.</div>";show("logPanel")};
+$("logs").onclick=()=>{let d=getData();$("logList").innerHTML=d.logs.length?d.logs.map((x,i)=>`<div class="log"><strong>Vlucht ${d.logs.length-i}</strong><br>${x.date} • ${x.project||"Geen locatie"} • ${x.duration}<br><span class="${x.status==="Voltooid"?"ok":"warn"}">${x.status}</span> • ${x.mode==="quick"?"Snelle":"Uitgebreide"} check${x.incident?" • ⚠️ bijzonderheid":""}<div style="display:flex;flex-direction:column;gap:8px;margin-top:10px;width:100%"><button class="secondary" data-copy-log="${i}" style="width:100%;min-height:46px;padding:12px;font-size:15px;margin:0">📋 Kopieer registratiegegevens</button><button class="primary" data-excel-log="${i}" style="width:100%;min-height:46px;padding:12px;font-size:15px;margin:0">📊 Exporteer naar Excel</button></div></div>`).join(""):"<div class='muted'>Geen vluchten.</div>";[...document.querySelectorAll("[data-copy-log]")].forEach(b=>b.onclick=()=>copyRegistration(d.logs[Number(b.dataset.copyLog)]));[...document.querySelectorAll("[data-excel-log]")].forEach(b=>b.onclick=()=>downloadRegistration(d.logs[Number(b.dataset.excelLog)]));show("logPanel")};
 $("backLogs").onclick=()=>show("home");$("clearLogs").onclick=()=>{if(confirm("Alle vluchtregistraties wissen?")){let d=getData();d.logs=[];setData(d);$("logs").click()}};
 $("batteries").onclick=()=>{batteries();show("batteryPanel")};$("backBat").onclick=()=>show("home");$("addBat").onclick=()=>{let n=$("batName").value.trim(),c=parseInt($("batCycles").value,10);if(!n||!Number.isFinite(c)||c<0){alert("Vul een geldig accunummer en aantal cycli in.");return}let d=getData();d.batteries[n]={cycles:c};setData(d);$("batName").value="";$("batCycles").value="";batteries()};
-function renderReport(x){$("reportBody").innerHTML=`<div class="card"><strong>Datum</strong><div>${x.date}</div><br><strong>Project / locatie</strong><div>${x.project}</div><br><strong>Piloot</strong><div>${x.pilot}</div><br><strong>Doel</strong><div>${x.purpose}</div><br><strong>Controle</strong><div>${x.mode==="quick"?"Snelle check":"Uitgebreide check"}</div><br><strong>Accu</strong><div>${x.battery||"Niet geselecteerd"}</div><br><strong>Start</strong><div>${new Date(x.started).toLocaleTimeString("nl-NL")}</div><strong>Einde</strong><div>${new Date(x.end).toLocaleTimeString("nl-NL")}</div><br><strong>Duur</strong><div>${x.duration}</div><br><strong>Status</strong><div>${x.status}</div>${x.note?`<br><strong>Opmerking</strong><div>${x.note}</div>`:""}${x.incident?`<br><strong>Bijzonderheid</strong><div>${x.incident.replaceAll("\n","<br>")}</div>`:""}</div>`}
+function renderReport(x){lastReportData=x;$("reportBody").innerHTML=`<div class="card"><strong>Datum</strong><div>${x.date}</div><br><strong>Project / locatie</strong><div>${x.project}</div><br><strong>Piloot</strong><div>${x.pilot}</div><br><strong>Doel</strong><div>${x.purpose}</div><br><strong>Controle</strong><div>${x.mode==="quick"?"Snelle check":"Uitgebreide check"}</div><br><strong>Accu</strong><div>${x.battery||"Niet geselecteerd"}</div><br><strong>Start</strong><div>${new Date(x.started).toLocaleTimeString("nl-NL")}</div><strong>Einde</strong><div>${new Date(x.end).toLocaleTimeString("nl-NL")}</div><br><strong>Duur</strong><div>${x.duration}</div><br><strong>Status</strong><div>${x.status}</div>${x.note?`<br><strong>Opmerking</strong><div>${x.note}</div>`:""}${x.incident?`<br><strong>Bijzonderheid</strong><div>${x.incident.replaceAll("\n","<br>")}</div>`:""}</div>`}
+$("copyRegistration").onclick=()=>{if(lastReportData)copyRegistration(lastReportData)};$("excelRegistration").onclick=()=>{if(lastReportData)downloadRegistration(lastReportData)};
 $("print").onclick=()=>print();$("reportBack").onclick=()=>show("home");
 </script>
 </body></html>
